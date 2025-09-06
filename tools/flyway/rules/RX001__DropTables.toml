@@ -1,0 +1,5 @@
+dialects = ["TEXT"]
+rules = ["(?i)DROP\\s+TABLE(?=$|\\s|;)"]
+passOnRegexMatch = false
+description = "DROP TABLE statement"
+severity = "warning"

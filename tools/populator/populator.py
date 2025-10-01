@@ -71,10 +71,10 @@ def populate_bulk_data():
 
     populator_conf = config["populator"]
 
-    database_name = populator_conf["database_name"]
-    username = populator_conf["username"]
-    password = populator_conf["password"]
-    host = populator_conf["host"]
+    database_name = populator_conf["database_name"].replace('"', '')
+    username = populator_conf["username"].replace('"', '')
+    password = populator_conf["password"].replace('"', '')
+    host = populator_conf["host"].replace('"', '')
 
     print("Starting database population")
 

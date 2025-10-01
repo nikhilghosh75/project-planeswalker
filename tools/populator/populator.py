@@ -26,15 +26,15 @@ def format_data_for_insert(card_data):
         row.append(card["type_line"])
 
         power = ""
-        if "power" in card:
+        if "power" in card and card["power"].isdigit():
             power = int(card["power"])
         
         toughness = ""
-        if "toughness" in card:
+        if "toughness" in card and card["toughness"].isdigit():
             toughness = int(card["toughness"])
 
         loyalty = ""
-        if "loyalty" in card:
+        if "loyalty" in card and card["loyalty"].isdigit():
             loyalty = int(card["loyalty"])
         
         oracle_text = ""

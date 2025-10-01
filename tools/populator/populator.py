@@ -5,71 +5,54 @@ import csv
 import psycopg
 import configparser
 
-def copy_scryfall_data_into_output(card_data):
-    output = io.StringIO()
-    writer = csv.writer(output)
-
-    print("writing Rows to csv:")
-    print(f"Progress: 0/{len(card_data)}")
-
-    columns = ["english_name", "released_at", "mana_cost", "typeline", "power", "toughness", "loyalty", "oracle_text", "set_code", "art_url"]
-    writer.writerow(columns)
-
-    count = 0
+def format_data_for_insert(card_data):
+    cards = []
     for card in card_data:
         row = []
         row.append(card["name"])
 
+        released_at = ""
+
         # For now, exclude cards without a release date (i.e. cards that weren't release physically)
         if "released_at" in card:
-            row.append(card["released_at"])
+            released_at = card["released_at"]
         else:
             continue
 
+        mana_cost = ""
         if "mana_cost" in card:
-            row.append(card["mana_cost"])
-        else:
-            row.append("")
+            mana_cost = row.append(card["mana_cost"])
         
         row.append(card["type_line"])
 
+        power = ""
         if "power" in card:
-            row.append(card["power"])
-        else:
-            row.append("")
+            power = int(card["power"])
         
+        toughness = ""
         if "toughness" in card:
-            row.append(card["toughness"])
-        else:
-            row.append("")
+            toughness = int(card["toughness"])
 
+        loyalty = ""
         if "loyalty" in card:
-            row.append(card["loyalty"])
-        else:
-            row.append("")
+            loyalty = int(card["loyalty"])
         
+        oracle_text = ""
         if "oracle_text" in card:
-            row.append(card["oracle_text"])
-        else:
-            row.append("")
+            oracle_text = card["oracle_text"]
         
-        row.append(card["set"])
 
         if card["image_status"] != "highres_scan":
             continue
 
+        image_url = ""
         if "image-uris" in card:
-            row.append(card["image_uris"]["png"])
-        else:
-            row.append("")
-        
-        writer.writerow(row)
+            image_url = card["image_uris"]["png"]
 
-        print(f"Progress: {count}/{len(card_data)}, last card is {card['name']}", end='\r')
-        count += 1
+        cards.append((card["name"], released_at, mana_cost, power, toughness, loyalty, oracle_text, card["set"], image_url))
+    
+    return cards
 
-    output.seek(0)
-    return output
 
 def populate_bulk_data():
     # Get the raw data from Scryfall
@@ -81,8 +64,7 @@ def populate_bulk_data():
     r = requests.get(raw_data["download_uri"])
     card_data = json.loads(r.text)
 
-    # COPY requires particular sets of formats, so we use csv
-    data_stream = copy_scryfall_data_into_output(card_data)
+    cards = format_data_for_insert(card_data)
 
     config = configparser.ConfigParser()
     config.read("populator.conf")
@@ -99,7 +81,12 @@ def populate_bulk_data():
     with psycopg.connect(f"dbname={database_name} user={username} password={password} host={host}") as conn:
         with conn.cursor() as cursor:
             columns = ["english_name", "released_at", "mana_cost", "typeline", "power", "toughness", "loyalty", "oracle_text", "set_code", "art_url"]
-            cursor.copy_from(data_stream, 'cards', sep='\t', columns=columns)
+            sql = """
+                    INSERT INTO users (english_name, released_at, mana_cost, typeline, power, toughness, loyalty, oracle_text, set_code, art_url)
+                    VALUES %s
+                """
+            
+            cursor.execute(sql, (cards,))
         
         conn.commit()
 

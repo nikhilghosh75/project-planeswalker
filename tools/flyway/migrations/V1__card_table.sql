@@ -8,6 +8,6 @@ CREATE TABLE cards (
 	toughness SMALLINT,
 	loyalty SMALLINT,
 	oracle_text VARCHAR,
-	set_code CHAR,
+	set_code CHAR(8),
 	art_url VARCHAR
 );

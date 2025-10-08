@@ -5,6 +5,18 @@ import csv
 import psycopg
 import configparser
 
+def format_gameplay_field(card, gameplay_field):
+    if gameplay_field in card:
+        if card[gameplay_field].isdigit():
+            return int(card[gameplay_field])
+        elif card[gameplay_field] == "-":
+            return -1
+        elif card[gameplay_field] == "*":
+            return -2
+        elif card[gameplay_field] == "X":
+            return -3
+    return -1
+
 def format_data_for_insert(card_data):
     cards = []
     for card in card_data:
@@ -25,17 +37,11 @@ def format_data_for_insert(card_data):
         
         row.append(card["type_line"])
 
-        power = ""
-        if "power" in card and card["power"].isdigit():
-            power = int(card["power"])
+        power = format_gameplay_field(card, "power")
         
-        toughness = ""
-        if "toughness" in card and card["toughness"].isdigit():
-            toughness = int(card["toughness"])
+        toughness = format_gameplay_field(card, "toughness")
 
-        loyalty = ""
-        if "loyalty" in card and card["loyalty"].isdigit():
-            loyalty = int(card["loyalty"])
+        loyalty = format_gameplay_field(card, "loyalty")
         
         oracle_text = ""
         if "oracle_text" in card:
@@ -49,7 +55,7 @@ def format_data_for_insert(card_data):
         if "image-uris" in card:
             image_url = card["image_uris"]["png"]
 
-        cards.append((card["name"], released_at, mana_cost, power, toughness, loyalty, oracle_text, card["set"], image_url))
+        cards.append((card["name"], released_at, mana_cost, card["type_line"], power, toughness, loyalty, oracle_text, card["set"], image_url))
     
     return cards
 
@@ -82,11 +88,11 @@ def populate_bulk_data():
         with conn.cursor() as cursor:
             columns = ["english_name", "released_at", "mana_cost", "typeline", "power", "toughness", "loyalty", "oracle_text", "set_code", "art_url"]
             sql = """
-                    INSERT INTO users (english_name, released_at, mana_cost, typeline, power, toughness, loyalty, oracle_text, set_code, art_url)
-                    VALUES %s
+                    INSERT INTO cards (english_name, released_at, mana_cost, typeline, power, toughness, loyalty, oracle_text, set_code, art_url)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
             
-            cursor.execute(sql, (cards,))
+            cursor.executemany(sql, cards)
         
         conn.commit()
 
